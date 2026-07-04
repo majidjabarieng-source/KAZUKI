@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>سیستم مدیریت شایان یدک</title>
+  <style>
+    body{ font-family:tahoma; background:#f4f4f4; margin:0; padding:10px; padding-bottom:40px; }
+    #auth-container { max-width: 400px; margin: 50px auto; background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+    .role-logo { width: 130px; height: auto; display: block; margin: 0 auto 18px auto; }
+    .role-btn { width: 100%; padding: 15px; margin: 10px 0; font-size: 18px; border: none; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+    .btn-marketer { background: #007bff; color: white; }
+    .btn-driver { background: #28a745; color: white; }
+    input.login-input { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+    .slider{ background:#fff; padding:10px; border-radius:10px; margin-bottom:10px; text-align:center; }
+    .slider-frame{ position:relative; }
+    #image{ display:block; margin:auto; max-width:100%; max-height:60vh; border-radius:8px; cursor: pointer; }
+    .counter{ text-align:center; font-weight:bold; padding:8px 0; }
+    .slider-controls{ display:flex; gap:10px; margin-top:10px; }
+    .slider-controls button{ flex:1; padding:10px; border:none; border-radius:6px; background:#444; color:#fff; font-size:14px; cursor:pointer; }
+    .search-box{ background:#fff; padding:10px; border-radius:10px; margin-top:10px; position:relative; }
+    .combo{ position:relative; }
+    #customerSearch{ width:100%; padding:10px 42px 10px 10px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box; font-size:15px; }
+    .dropdown-btn{ position:absolute; top:0; left:0; width:40px; height:100%; border:none; background:transparent; font-size:18px; cursor:pointer; color:#444; }
+    #results{ background:#fff; border:1px solid #ccc; border-radius:6px; position:absolute; top:100%; right:0; width:100%; max-height:220px; overflow-y:auto; display:none; z-index:1000; box-sizing:border-box; margin-top:4px; }
+    #results div{ padding:10px; cursor:pointer; border-bottom:1px solid #eee; }
+    #results div:hover{ background:#f0f0f0; }
+    .customer-info{ background:#fff; margin-top:10px; padding:10px; border-radius:10px; border:1px solid #ddd; line-height: 1.6; }
+    table{ width:100%; border-collapse:collapse; background:#fff; margin-top:10px; }
+    th,td{ border:1px solid #ccc; padding:6px; text-align:center; font-size:14px; }
+    table input{ width:90%; box-sizing:border-box; text-align:center; }
+    .total{ font-size:20px; font-weight:bold; margin-top:10px; padding:10px; background:#fff; border-radius:10px; }
+    .action-btn{ width:100%; padding:12px; margin-top:8px; background:#007bff; color:#fff; border:none; border-radius:6px; font-size:16px; cursor:pointer; }
+    .action-btn.reset{ background:#dc3545; }
+    .qty-box{ display:flex; flex-direction:column; align-items:center; gap:3px; }
+    .qty-box button{ width:32px; height:22px; padding:0; margin:0; border:none; border-radius:4px; background:#555; color:#fff; font-size:12px; }
+    .qty-box input{ width:55px; text-align:center; }
+    .hidden { display: none !important; }
+    #logout-link { color: red; cursor: pointer; float: left; font-size: 12px; }
+    .location-link { color: #007bff; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 5px; }
+    .site-footer { position: fixed; bottom: 8px; left: 0; width: 100%; text-align: center; font-size: 11px; color: #777; z-index: 999; }
+  </style>
+</head>
+<body>
+
+  <div id="auth-section">
+    <div id="auth-container">
+      <h2 id="auth-title">پخش کازوکی</h2>
+
+      <div id="role-selection">
+        <img src="image.png" alt="KAZUKI Logo" class="role-logo">
+        <button class="role-btn btn-marketer" onclick="selectRole('marketer')">ورود بازاریاب</button>
+        <button class="role-btn btn-driver" onclick="selectRole('driver')">ورود راننده</button>
+      </div>
+
+      <div id="login-form" class="hidden">
+        <p id="selected-role-text" style="font-weight: bold;"></p>
+        <input type="text" id="username" class="login-input" placeholder="نام کاربری">
+        <input type="password" id="password" class="login-input" placeholder="رمز عبور">
+        <button class="action-btn" onclick="attemptLogin()">تایید و ورود</button>
+        <button class="action-btn reset" onclick="resetAuth()">بازگشت</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="main-app" class="hidden">
+    <div style="overflow: hidden; margin-bottom: 10px;">
+        <span id="user-display">خوش آمدید</span>
+        <span id="logout-link" onclick="logout()">خروج</span>
+    </div>
+
+    <div class="slider marketer-only">
+      <div class="slider-frame">
+        <img id="image" src="" alt="در حال بارگذاری اسلایدر...">
+      </div>
+      <div class="counter" id="counter">0 / 0</div>
+      <div class="slider-controls">
+        <button onclick="prevSlide()">قبلی</button>
+        <button onclick="nextSlide()">بعدی</button>
+      </div>
+    </div>
+
+    <div class="search-box">
+      <div class="combo">
+        <input type="text" id="customerSearch" placeholder="نام مشتری را جستجو کنید">
+        <button class="dropdown-btn" onclick="toggleDropdown()">▼</button>
+        <div id="results"></div>
+      </div>
+    </div>
+
+    <button class="action-btn marketer-only" onclick="openAddCustomerBox()">افزودن مشتری جدید</button>
+
+    <div class="customer-info" id="customerInfo">
+      <b>مشتری انتخاب نشده</b>
+    </div>
+
+    <div id="addCustomerBox" class="marketer-only" style="display:none;background:#fff;margin-top:10px;padding:10px;border-radius:10px;">
+      <h3>افزودن مشتری جدید</h3>
+      <input id="newShop" placeholder="نام فروشگاه" style="width:100%;padding:10px;margin:5px 0;box-sizing:border-box;">
+      <input id="newName" placeholder="نام مشتری" style="width:100%;padding:10px;margin:5px 0;box-sizing:border-box;">
+      <textarea id="newAddress" placeholder="آدرس" style="width:100%;padding:10px;margin:5px 0;box-sizing:border-box;"></textarea>
+      <input id="newPhone" placeholder="تلفن ثابت" style="width:100%;padding:10px;margin:5px 0;box-sizing:border-box;">
+      <input id="newMobile" placeholder="موبایل" style="width:100%;padding:10px;margin:5px 0;box-sizing:border-box;">
+      <input id="newLocation" placeholder="لینک مختصات (نشان)" style="width:100%;padding:10px;margin:5px 0;box-sizing:border-box;">
+      <button class="action-btn" onclick="addNewCustomer()">ثبت در سیستم</button>
+    </div>
+
+    <div class="marketer-only">
+        <table>
+          <thead>
+            <tr>
+              <th>کالا</th>
+              <th>تعداد</th>
+              <th>قیمت</th>
+              <th>جمع</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3">تخفیف (%)</td>
+              <td><input id="discount" type="number" value="0"></td>
+            </tr>
+          </tfoot>
+        </table>
+        <div class="total">جمع کل: <span id="grandTotal">0</span> ریال</div>
+        <button class="action-btn reset" onclick="resetInvoice()">پاک کردن</button>
+        <button class="action-btn" onclick="shareOrder()">ثبت سفارش</button>
+    </div>
+      <div id="driverOrdersBox" class="hidden" style="padding:16px;">
+      <h3>سفارش‌های ارسال شده</h3>
+      <div id="driverOrdersList"></div>
+    </div>
+  </div>
+
+  <footer class="site-footer">© تمام حقوق برای KAZUKI محفوظ است</footer>
+
+  <script>
+    const SHEET_ID = "1WRNXzcbmJMdBgpyvJtta40_53Qns2ftNHWq4kBMgZwU";
+    const PRODUCTS_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Products`;
+    const CUSTOMERS_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Customers`;
+    const SLIDER_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Slider`;
+    const ADD_CUSTOMER_URL = "https://script.google.com/macros/s/AKfycbzsTeVFDEx8cUp_e8t88Pdv4SC7XcVUXncHzFysToQafkbspMhadhBKEhOIqwUbEpMmhQ/exec";
+    const ORDER_API_URL = "https://script.google.com/macros/s/AKfycbzsTeVFDEx8cUp_e8t88Pdv4SC7XcVUXncHzFysToQafkbspMhadhBKEhOIqwUbEpMmhQ/exec"
+    let tempRole = "";
+    let sliderImages = [];
+    let currentSlideIndex = 0;
+    let sliderTimer = null;
+    let products = [];
+    let customers = [];
+    let selectedCustomer = null;
+    let driverOrdersVersion = "";
+    let driverOrdersTimer = null;
+
+    function startDriverOrdersAutoRefresh() {
+    driverOrdersTimer = setInterval(() => {
+        loadDriverOrders();
+    }, 5000); // هر 5 ثانیه
+    }
+    
+
+
+    function selectRole(role) {
+        tempRole = role;
+        document.getElementById("role-selection").classList.add("hidden");
+        document.getElementById("login-form").classList.remove("hidden");
+        document.getElementById("selected-role-text").innerText = "ورود به عنوان: " + (role === 'marketer' ? 'بازاریاب' : 'راننده');
+    }
+
+    function resetAuth() {
+        document.getElementById("role-selection").classList.remove("hidden");
+        document.getElementById("login-form").classList.add("hidden");
+    }
+
+    async function attemptLogin() {
+      const uInput = document.getElementById("username").value.trim();
+      const pInput = document.getElementById("password").value.trim();
+
+      const formData = new FormData();
+      formData.append("action", "login");
+      formData.append("username", uInput);
+      formData.append("password", pInput);
+
+      try {
+          const res = await fetch(ADD_CUSTOMER_URL, { method: "POST", body: formData });
+          const result = await res.json();
+
+          if(result.status === "success") {
+              localStorage.setItem("shayan_user", uInput);
+              localStorage.setItem("shayan_role", result.role);
+              localStorage.setItem("shayan_name", result.name); // این خط را اضافه کن
+              initApp();
+          } else {
+              alert("نام کاربری یا رمز اشتباه است");
+          }
+      } catch(e) {
+          alert("خطا در اتصال");
+      }
+    }
+
+    function logout() {
+      localStorage.clear();
+      location.reload();
+    }
+
+    
+
+    function initApp() {
+        const user = localStorage.getItem("shayan_user");
+        const role = localStorage.getItem("shayan_role");
+        const name = localStorage.getItem("shayan_name") || user;
+
+        if (!user || !role) {
+            document.getElementById("auth-section").classList.remove("hidden");
+            document.getElementById("main-app").classList.add("hidden");
+            return;
+        }
+
+        document.getElementById("auth-section").classList.add("hidden");
+        document.getElementById("main-app").classList.remove("hidden");
+        document.getElementById("user-display").innerText = `کاربر: ${name} (${role === 'marketer' ? 'بازاریاب' : 'راننده'})`;
+
+        if (role === 'driver') {
+            document.querySelectorAll(".marketer-only").forEach(el => el.classList.add("hidden"));
+
+            const driverBox = document.getElementById("driverOrdersBox");
+            if (driverBox) driverBox.classList.remove("hidden");
+
+            loadCustomers().then(() => {
+                loadDriverOrders();
+                startDriverOrdersAutoRefresh();
+            });
+
+        } else {
+            const driverBox = document.getElementById("driverOrdersBox");
+            if (driverBox) driverBox.classList.add("hidden");
+
+            loadSliderImages();
+            loadProducts();
+            loadCustomers();
+
+            if (driverOrdersTimer) {
+                clearInterval(driverOrdersTimer);
+                driverOrdersTimer = null;
+            }
+        }
+    }
+
+    function convertDriveLink(url) {
+      const match = url.match(/[-\w]{25,}/);
+      return (match && match[0]) ? `https://drive.google.com/thumbnail?id=${match[0]}&sz=s1000` : url;
+    }
+
+    async function loadSliderImages() {
+      try {
+        const res = await fetch(SLIDER_URL);
+        const text = await res.text();
+        const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+        sliderImages = json.table.rows.map(r => r.c[0]?.v).filter(url => url && url.startsWith("http"));
+
+        if (sliderImages.length > 0) {
+          showSlide();
+          startSlider();
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function showSlide() {
+      document.getElementById("image").src = convertDriveLink(sliderImages[currentSlideIndex]);
+      document.getElementById("counter").textContent = `${currentSlideIndex + 1} / ${sliderImages.length}`;
+    }
+
+    function nextSlide() {
+      if (!sliderImages.length) return;
+      currentSlideIndex = (currentSlideIndex + 1) % sliderImages.length;
+      showSlide();
+    }
+
+    function prevSlide() {
+      if (!sliderImages.length) return;
+      currentSlideIndex = (currentSlideIndex - 1 + sliderImages.length) % sliderImages.length;
+      showSlide();
+    }
+
+    function startSlider() {
+      if (sliderTimer) clearInterval(sliderTimer);
+      sliderTimer = setInterval(nextSlide, 5000);
+    }
+
+    async function loadProducts(){
+      try{
+        const res = await fetch(PRODUCTS_URL);
+        const text = await res.text();
+        const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+        products = json.table.rows.map(r => ({ name: r.c[0]?.v, price: r.c[1]?.v })).filter(p => p.name);
+        renderProducts(products);
+      } catch(e) {
+        console.error(e);
+      }
+    }
+
+    function renderProducts(list){
+      const tbody = document.getElementById("tbody");
+      tbody.innerHTML = "";
+
+      list.forEach(p => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${p.name}</td><td><div class="qty-box"><button onclick="changeQty(this,1)">▲</button><input class="qty" type="number" min="0"><button onclick="changeQty(this,-1)">▼</button></div></td><td><input class="price" type="text" value="${Number(p.price).toLocaleString()}"></td><td class="rowTotal">0</td>`;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function changeQty(btn, step){
+      const input = btn.parentElement.querySelector(".qty");
+      let val = (Number(input.value) || 0) + step;
+      input.value = val <= 0 ? "" : val;
+      calculate();
+    }
+
+    function calculate(){
+      let grand = 0;
+
+      document.querySelectorAll("#tbody tr").forEach(r => {
+        const q = Number(r.querySelector(".qty").value) || 0;
+        const p = Number(r.querySelector(".price").value.replace(/,/g, "")) || 0;
+        r.querySelector(".rowTotal").textContent = (q * p).toLocaleString();
+        grand += (q * p);
+      });
+
+      grand -= (grand * (Number(document.getElementById("discount").value) || 0) / 100);
+      document.getElementById("grandTotal").textContent = Math.round(grand).toLocaleString();
+    }
+
+    async function loadCustomers() {
+      try {
+        const res = await fetch(CUSTOMERS_URL);
+        const text = await res.text();
+        const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}") + 1));
+
+        customers = json.table.rows.map(r => ({
+            id: r.c[0]?.v || "",
+            shop: r.c[1]?.v || "",
+            name: r.c[2]?.v || "",
+            address: r.c[3]?.v || "",
+            phone: r.c[4]?.v || "",
+            mobile: r.c[5]?.v || "",
+            location: r.c[6]?.v || ""
+        })).filter(c => c.name);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function toggleDropdown() {
+      const resBox = document.getElementById("results");
+      resBox.style.display = (resBox.style.display === "block") ? "none" : "block";
+
+      if(resBox.style.display === "block") {
+        renderCustomerList(customers);
+      }
+    }
+
+    function renderCustomerList(list) {
+      const resBox = document.getElementById("results");
+      resBox.innerHTML = "";
+
+      list.forEach(c => {
+        const div = document.createElement("div");
+        div.textContent = `${c.name} - ${c.shop}`;
+        div.onclick = () => {
+            console.log(c);              // تست
+            selectedCustomer = c;
+            console.log(selectedCustomer); // تست
+            document.getElementById("customerSearch").value = c.name;
+            resBox.style.display = "none";
+            showCustomerInfo();
+        };
+        resBox.appendChild(div);
+      });
+    }
+
+    function showCustomerInfo() {
+      console.log(selectedCustomer);
+      const info = document.getElementById("customerInfo");
+
+      if (!selectedCustomer) {
+        info.innerHTML = "<b>مشتری انتخاب نشده</b>";
+        return;
+      }
+
+      let locHtml = "";
+      if (selectedCustomer.location) {
+        let rawUrl = selectedCustomer.location;
+        let finalUrl = "";
+
+        // اگر لینک شامل مختصات باشد، آن را برای اپلیکیشن نشان بهینه می‌کنیم
+        if (rawUrl.includes("nshn.ir/")) {
+            // ایجاد یک Intent مستقیم برای باز کردن اپلیکیشن نشان
+            // این کد باعث می‌شود اندروید مستقیماً پکیج نشان را صدا بزند
+            finalUrl = `intent://${rawUrl.replace("https://", "")}#Intent;scheme=http;package=org.rajman.neshan.traffic.tehran.navigator;end`;
+        } else {
+            finalUrl = rawUrl; 
+        }
+
+        locHtml = `<br><a href="${finalUrl}" class="location-link" style="color: #28a745; font-weight: bold;">🚗 باز کردن مستقیم در نشان</a>`;
+      }
+
+      info.innerHTML = `
+        <b>فروشگاه:</b> ${selectedCustomer.shop || "-"}<br>
+        <b>نام مشتری:</b> ${selectedCustomer.name || "-"}<br>
+        <b>آدرس:</b> ${selectedCustomer.address || "-"}<br>
+        <b>تلفن ثابت:</b> ${selectedCustomer.phone || "-"}<br>
+        <b>موبایل:</b> ${selectedCustomer.mobile || "-"}${locHtml}
+      `;
+    }
+
+
+    async function loadDriverOrders() {
+      const f = new FormData();
+      f.append("action", "getDriverOrders");
+      f.append("version", driverOrdersVersion);
+
+      const res = await fetch(ADD_CUSTOMER_URL, {
+        method: "POST",
+        body: f
+      });
+
+      const data = await res.json();
+      if (data.status !== "success") return;
+
+      if (data.changed === false) return;
+
+      driverOrdersVersion = data.version || driverOrdersVersion;
+      await renderDriverOrders(data.orders || []);
+    }
+
+
+
+
+    async function renderDriverOrders(orders) {
+
+        const box = document.getElementById("driverOrdersList");
+
+        box.innerHTML = "";
+
+        if (!orders.length) {
+            box.innerHTML = "<p>سفارشی برای ارسال وجود ندارد.</p>";
+            return;
+        }
+
+        for (const order of orders) {
+
+            const customer = customers.find(c => c.id === order.customerId) || {};
+            const items = await getOrderItems(order.orderId);
+
+            const itemsHtml = items.map(item => `
+                <li>${item.productName} - تعداد: ${item.qty} - قیمت: ${item.price} - جمع: ${item.rowTotal}</li>
+            `).join("");
+
+            const orderDiv = document.createElement("div");
+            orderDiv.id = `order-${order.orderId}`;
+            orderDiv.style.cssText = "border:1px solid #ccc; padding:10px; margin:10px 0; border-radius:8px;";
+
+            orderDiv.innerHTML = `
+                <h4>سفارش ${order.orderId}</h4>
+                <p><b>فروشگاه:</b> ${order.shopName}</p>
+                <p><b>مشتری:</b> ${customer.name || "-"}</p>
+                <p><b>موبایل:</b> ${customer.mobile || "-"}</p>
+                <p><b>تلفن:</b> ${customer.phone || "-"}</p>
+                <p><b>آدرس:</b> ${customer.address || "-"}</p>
+                <p><b>لوکیشن:</b> ${customer.location ? `<a href="${customer.location}" target="_blank">مشاهده در نشان</a>` : "-"}</p>
+                <p><b>جمع کل:</b> ${order.grandTotal}</p>
+                <p><b>تخفیف:</b> ${order.discount}</p>
+                <p><b>اقلام سفارش:</b></p>
+                <ul>${itemsHtml}</ul>
+
+                <button id="deliver-${order.orderId}" onclick="markDelivered('${order.orderId}')">
+                    تحویل
+                </button>
+            `;
+
+            box.appendChild(orderDiv);
+        }
+    }
+
+
+    async function getOrderItems(orderId) {
+        const f = new FormData();
+        f.append("action", "getOrderItems");
+        f.append("orderId", orderId);
+
+        const res = await fetch(ADD_CUSTOMER_URL, {
+            method: "POST",
+            body: f
+        });
+
+        const data = await res.json();
+        return data.status === "success" ? data.items : [];
+    }
+
+    function showWaitingMessage(text = "لطفاً منتظر بمانید...") {
+        let box = document.getElementById("waitingMessageBox");
+        if (!box) {
+            box = document.createElement("div");
+            box.id = "waitingMessageBox";
+            box.style.position = "fixed";
+            box.style.top = "20px";
+            box.style.left = "50%";
+            box.style.transform = "translateX(-50%)";
+            box.style.background = "#222";
+            box.style.color = "#fff";
+            box.style.padding = "12px 20px";
+            box.style.borderRadius = "10px";
+            box.style.fontSize = "16px";
+            box.style.zIndex = "9999";
+            box.style.boxShadow = "0 4px 12px rgba(0,0,0,0.25)";
+            document.body.appendChild(box);
+        }
+        box.innerText = text;
+        box.style.display = "block";
+    }
+
+    function hideWaitingMessage() {
+        const box = document.getElementById("waitingMessageBox");
+        if (box) box.style.display = "none";
+    }
+
+    function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function markDelivered(orderId) {
+
+        const confirmDelivery = confirm("آیا تأیید می‌کنید که این سفارش تحویل مشتری داده شده است؟");
+        if (!confirmDelivery) {
+            return;
+        }
+
+        showWaitingMessage("لطفاً منتظر بمانید...");
+
+        try {
+
+            const f = new FormData();
+            f.append("action", "updateStatus");
+            f.append("orderId", orderId);
+            f.append("newStatus", "تحویل شد");
+
+            const res = await fetch(ADD_CUSTOMER_URL, {
+                method: "POST",
+                body: f
+            });
+
+            const data = await res.json();
+
+            hideWaitingMessage();
+
+            if (data.status === "success") {
+
+                const orderEl = document.getElementById(`order-${orderId}`);
+                if (orderEl) orderEl.remove();
+
+                if (!document.getElementById("driverOrdersList").children.length) {
+                    document.getElementById("driverOrdersList").innerHTML =
+                        "<p>سفارشی برای ارسال وجود ندارد.</p>";
+                }
+
+                alert("تحویل سفارش با موفقیت ثبت شد");
+
+            } else {
+
+                alert("خطا در ثبت تحویل");
+            }
+
+        } catch (error) {
+
+            hideWaitingMessage();
+
+            console.error(error);
+            alert("خطا در ارتباط با سرور");
+
+        }
+    }
+
+
+    async function addNewCustomer(){
+      const data = {
+        shop: document.getElementById("newShop").value,
+        name: document.getElementById("newName").value,
+        address: document.getElementById("newAddress").value,
+        phone: document.getElementById("newPhone").value,
+        mobile: document.getElementById("newMobile").value,
+        location: document.getElementById("newLocation").value
+      };
+
+      if(!data.shop || !data.name) {
+        alert("نام فروشگاه و مشتری الزامی است");
+        return;
+      }
+
+      const f = new FormData();
+      f.append("action","addCustomer");
+      for(let k in data) f.append(k, data[k]);
+
+      try {
+        await fetch(ADD_CUSTOMER_URL, { method: "POST", body: f });
+        alert("ثبت شد. لیست را رفرش کنید.");
+        document.getElementById("addCustomerBox").style.display = "none";
+        loadCustomers();
+      } catch(e) {
+        alert("خطا در ثبت");
+      }
+    }
+
+    async function shareOrder() {
+
+        const confirmSubmit = confirm("آیا از ثبت نهایی این سفارش مطمئن هستید؟");
+        if (!confirmSubmit) return;
+
+        if (!selectedCustomer) {
+            return alert("مشتری انتخاب نشده!");
+        }
+
+        let items = [];
+
+        document.querySelectorAll("#tbody tr").forEach(r => {
+
+            const qty = Number(r.querySelector(".qty").value) || 0;
+
+            if (qty > 0) {
+
+                const name = r.cells[0].innerText;
+
+                const price = Number(
+                    r.querySelector(".price").value.replace(/,/g, "")
+                ) || 0;
+
+                items.push({
+                    name: name,
+                    qty: qty,
+                    price: price,
+                    rowTotal: qty * price
+                });
+            }
+        });
+
+        if (items.length === 0) {
+            return alert("هیچ کالایی انتخاب نشده است!");
+        }
+
+        showWaitingMessage("لطفاً منتظر بمانید...");
+
+        const orderData = {
+            customerId: selectedCustomer.id || "",
+            shopName: selectedCustomer.shop || "",
+            discount: Number(document.getElementById("discount").value) || 0,
+            grandTotal: Number(
+                document.getElementById("grandTotal")
+                    .innerText.replace(/,/g, "")
+            ) || 0,
+            items: items
+        };
+
+        try {
+
+            console.log("Sending:", orderData);
+
+            const formData = new FormData();
+
+            formData.append("action", "order");
+            formData.append("marketer", localStorage.getItem("shayan_user"));
+            formData.append("orderData", JSON.stringify(orderData));
+
+            const response = await fetch(ORDER_API_URL, {
+                method: "POST",
+                body: formData
+            });
+
+            const result = await response.json();
+
+            console.log("Response:", result);
+
+            if (result.status === "success") {
+
+                alert(
+                    "سفارش با موفقیت ثبت شد.\nشماره سفارش: " +
+                    result.orderId
+                );
+
+                resetInvoice();
+
+            } else {
+
+                alert("خطا: " + (result.message || "ثبت سفارش ناموفق بود"));
+            }
+
+        } catch (err) {
+
+            console.error(err);
+            alert("خطا در ارسال سفارش");
+
+        } finally {
+
+            hideWaitingMessage();
+
+        }
+    }
+
+
+
+    function openAddCustomerBox(){
+      const b = document.getElementById("addCustomerBox");
+      b.style.display = b.style.display === "none" ? "block" : "none";
+    }
+
+    function resetInvoice() {
+      document.querySelectorAll(".qty").forEach(x => x.value = "");
+      calculate();
+    }
+
+    document.addEventListener("input", e => {
+      if(e.target.classList.contains("qty") || e.target.id === "discount") {
+        calculate();
+      }
+    });
+
+    window.addEventListener("load", initApp);
+  </script>
+</body>
+</html>
