@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>کازوکی</title>
+  <title>سیستم مدیریت شایان یدک</title>
   <style>
     body{ font-family:tahoma; background:#f4f4f4; margin:0; padding:10px; padding-bottom:40px; }
     #auth-container { max-width: 400px; margin: 50px auto; background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
@@ -122,8 +122,15 @@
               <td><input id="discount" type="number" value="0"></td>
             </tr>
           </tfoot>
-        </table>
+                </table>
         <div class="total">جمع کل: <span id="grandTotal">0</span> ریال</div>
+        
+        <!-- فیلد جدید توضیحات سفارش -->
+        <div style="margin-top: 15px; margin-bottom: 15px; text-align: right;">
+            <label for="order-desc" style="display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px;">توضیحات سفارش:</label>
+            <textarea id="order-desc" placeholder="توضیحات اختیاری را اینجا بنویسید..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 13px; box-sizing: border-box; direction: rtl;"></textarea>
+        </div>
+
         <button class="action-btn reset" onclick="resetInvoice()">پاک کردن</button>
         <button class="action-btn" onclick="shareOrder()">ثبت سفارش</button>
     </div>
@@ -140,8 +147,8 @@
     const PRODUCTS_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Products`;
     const CUSTOMERS_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Customers`;
     const SLIDER_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=Slider`;
-    const ADD_CUSTOMER_URL = "https://script.google.com/macros/s/AKfycbzsTeVFDEx8cUp_e8t88Pdv4SC7XcVUXncHzFysToQafkbspMhadhBKEhOIqwUbEpMmhQ/exec";
-    const ORDER_API_URL = "https://script.google.com/macros/s/AKfycbzsTeVFDEx8cUp_e8t88Pdv4SC7XcVUXncHzFysToQafkbspMhadhBKEhOIqwUbEpMmhQ/exec"
+    const ADD_CUSTOMER_URL = "https://script.google.com/macros/s/AKfycbw1fNZ5nJIufntC95jwu1C2uhx9SCW_a2LvHceqYtjp4cy6G2FW4ilwTYHjEusGK7rj5A/exec";
+    const ORDER_API_URL = "https://script.google.com/macros/s/AKfycbw1fNZ5nJIufntC95jwu1C2uhx9SCW_a2LvHceqYtjp4cy6G2FW4ilwTYHjEusGK7rj5A/exec"
     let tempRole = "";
     let sliderImages = [];
     let currentSlideIndex = 0;
@@ -659,6 +666,7 @@
                 document.getElementById("grandTotal")
                     .innerText.replace(/,/g, "")
             ) || 0,
+            description: document.getElementById("order-desc")?.value || "",
             items: items
         };
 
@@ -717,6 +725,8 @@
     function resetInvoice() {
       document.querySelectorAll(".qty").forEach(x => x.value = "");
       calculate();
+      const desc = document.getElementById("order-desc");
+      if (desc) desc.value = "";
     }
 
     document.addEventListener("input", e => {
