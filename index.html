@@ -449,27 +449,34 @@
     async function renderDriverOrders(orders) {
 
         const box = document.getElementById("driverOrdersList");
-
+    
         box.innerHTML = "";
-
+    
         if (!orders.length) {
             box.innerHTML = "<p>سفارشی برای ارسال وجود ندارد.</p>";
             return;
         }
-
+    
         for (const order of orders) {
-
+    
             const customer = customers.find(c => c.id === order.customerId) || {};
             const items = await getOrderItems(order.orderId);
-
+    
             const itemsHtml = items.map(item => `
                 <li>${item.productName} - تعداد: ${item.qty} - قیمت: ${item.price} - جمع: ${item.rowTotal}</li>
             `).join("");
-
+    
+            let locationUrl = customer.location || "";
+    
+            if (locationUrl.includes("nshn.ir/")) {
+                locationUrl =
+                    `intent://${locationUrl.replace("https://", "")}#Intent;scheme=http;package=org.rajman.neshan.traffic.tehran.navigator;end`;
+            }
+    
             const orderDiv = document.createElement("div");
             orderDiv.id = `order-${order.orderId}`;
             orderDiv.style.cssText = "border:1px solid #ccc; padding:10px; margin:10px 0; border-radius:8px;";
-
+    
             orderDiv.innerHTML = `
                 <h4>سفارش ${order.orderId}</h4>
                 <p><b>فروشگاه:</b> ${order.shopName}</p>
@@ -477,20 +484,25 @@
                 <p><b>موبایل:</b> ${customer.mobile || "-"}</p>
                 <p><b>تلفن:</b> ${customer.phone || "-"}</p>
                 <p><b>آدرس:</b> ${customer.address || "-"}</p>
-                <p><b>لوکیشن:</b> ${customer.location ? `<a href="${customer.location}" target="_blank">مشاهده در نشان</a>` : "-"}</p>
+                <p><b>لوکیشن:</b> ${
+                    customer.location
+                        ? `<a href="${locationUrl}" class="location-link" style="color: #28a745; font-weight: bold;">مشاهده در نشان</a>`
+                        : "-"
+                }</p>
                 <p><b>جمع کل:</b> ${order.grandTotal}</p>
                 <p><b>تخفیف:</b> ${order.discount}</p>
                 <p><b>اقلام سفارش:</b></p>
                 <ul>${itemsHtml}</ul>
-
+    
                 <button id="deliver-${order.orderId}" onclick="markDelivered('${order.orderId}')">
                     تحویل
                 </button>
             `;
-
+    
             box.appendChild(orderDiv);
         }
     }
+
 
 
     async function getOrderItems(orderId) {
