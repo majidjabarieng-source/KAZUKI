@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>کازوکی</title>
+  <title>سیستم مدیریت شایان یدک</title>
   <style>
     body{ font-family:tahoma; background:#f4f4f4; margin:0; padding:10px; padding-bottom:40px; }
     #auth-container { max-width: 400px; margin: 50px auto; background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
@@ -39,6 +39,10 @@
     #logout-link { color: red; cursor: pointer; float: left; font-size: 12px; }
     .location-link { color: #007bff; text-decoration: none; font-weight: bold; display: inline-block; margin-top: 5px; }
     .site-footer { position: fixed; bottom: 8px; left: 0; width: 100%; text-align: center; font-size: 11px; color: #777; z-index: 999; }
+    .orders-section { background:#fff; padding:16px; border-radius:10px; margin-top:10px; border:1px solid #ddd; }
+    .order-card { border:1px solid #ccc; padding:10px; margin:10px 0; border-radius:8px; background:#fafafa; }
+    .order-card h4 { margin:0 0 8px 0; color:#007bff; }
+    .btn-purple { background:#6f42c1 !important; }
   </style>
 </head>
 <body>
@@ -69,6 +73,7 @@
         <span id="logout-link" onclick="logout()">خروج</span>
     </div>
 
+    <div id="marketerWorkArea" class="marketer-only">
     <div class="slider marketer-only">
       <div class="slider-frame">
         <img id="image" src="" alt="در حال بارگذاری اسلایدر...">
@@ -94,6 +99,14 @@
       <b>مشتری انتخاب نشده</b>
     </div>
 
+    <button class="action-btn marketer-only btn-purple" id="marketerPreviousWeekBtn" onclick="toggleMarketerPreviousWeekOrders()">سفارشات هفته گذشته</button>
+
+    <div id="marketerPreviousWeekBox" class="marketer-only orders-section hidden">
+      <h3>سفارشات هفته گذشته شما</h3>
+      <p style="font-size:13px;color:#666;margin-top:0;">سفارش‌های ثبت‌شده توسط شما در ۷ روز گذشته</p>
+      <div id="marketerPreviousWeekList">در حال بارگذاری...</div>
+    </div>
+
     <div id="addCustomerBox" class="marketer-only" style="display:none;background:#fff;margin-top:10px;padding:10px;border-radius:10px;">
       <h3>افزودن مشتری جدید</h3>
       <input id="newShop" placeholder="نام فروشگاه" style="width:100%;padding:10px;margin:5px 0;box-sizing:border-box;">
@@ -104,7 +117,7 @@
       <input id="newLocation" placeholder="لینک مختصات (نشان)" style="width:100%;padding:10px;margin:5px 0;box-sizing:border-box;">
       <button class="action-btn" onclick="addNewCustomer()">ثبت در سیستم</button>
     </div>
-
+    
     <div class="marketer-only">
         <table>
           <thead>
@@ -134,13 +147,15 @@
         <button class="action-btn reset" onclick="resetInvoice()">پاک کردن</button>
         <button class="action-btn" onclick="shareOrder()">ثبت سفارش</button>
     </div>
+    </div>
+
       <div id="driverOrdersBox" class="hidden" style="padding:16px;">
       <h3>سفارش‌های ارسال شده</h3>
       <div id="driverOrdersList"></div>
     </div>
   </div>
 
-  <footer class="site-footer">© تمام حقوق برای کازوکی محفوظ است</footer>
+  <footer class="site-footer">© تمام حقوق برای KAZUKI محفوظ است</footer>
 
   <script>
     const SHEET_ID = "1WRNXzcbmJMdBgpyvJtta40_53Qns2ftNHWq4kBMgZwU";
@@ -245,6 +260,7 @@
             loadSliderImages();
             loadProducts();
             loadCustomers();
+            startMarketerAutoRefresh();
 
             if (driverOrdersTimer) {
                 clearInterval(driverOrdersTimer);
@@ -449,34 +465,34 @@
     async function renderDriverOrders(orders) {
 
         const box = document.getElementById("driverOrdersList");
-    
+
         box.innerHTML = "";
-    
+
         if (!orders.length) {
             box.innerHTML = "<p>سفارشی برای ارسال وجود ندارد.</p>";
             return;
         }
-    
+
         for (const order of orders) {
-    
+
             const customer = customers.find(c => c.id === order.customerId) || {};
             const items = await getOrderItems(order.orderId);
-    
+
             const itemsHtml = items.map(item => `
                 <li>${item.productName} - تعداد: ${item.qty} - قیمت: ${item.price} - جمع: ${item.rowTotal}</li>
             `).join("");
-    
+
             let locationUrl = customer.location || "";
-    
+
             if (locationUrl.includes("nshn.ir/")) {
                 locationUrl =
                     `intent://${locationUrl.replace("https://", "")}#Intent;scheme=http;package=org.rajman.neshan.traffic.tehran.navigator;end`;
             }
-    
+
             const orderDiv = document.createElement("div");
             orderDiv.id = `order-${order.orderId}`;
             orderDiv.style.cssText = "border:1px solid #ccc; padding:10px; margin:10px 0; border-radius:8px;";
-    
+
             orderDiv.innerHTML = `
                 <h4>سفارش ${order.orderId}</h4>
                 <p><b>فروشگاه:</b> ${order.shopName}</p>
@@ -493,16 +509,129 @@
                 <p><b>تخفیف:</b> ${order.discount}</p>
                 <p><b>اقلام سفارش:</b></p>
                 <ul>${itemsHtml}</ul>
-    
+
                 <button id="deliver-${order.orderId}" onclick="markDelivered('${order.orderId}')">
                     تحویل
                 </button>
             `;
-    
+
             box.appendChild(orderDiv);
         }
     }
 
+
+    function formatOrderDate(dateVal) {
+      if (!dateVal) return "-";
+      const d = dateVal instanceof Date ? dateVal : new Date(dateVal);
+      if (isNaN(d.getTime())) return String(dateVal);
+      return d.toLocaleDateString("fa-IR", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    }
+
+    function filterMarketerPreviousWeekOrders(allOrders) {
+      const marketer = (localStorage.getItem("shayan_user") || "").trim();
+      const now = new Date();
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+      return (allOrders || [])
+        .filter(order => {
+          if (String(order.marketer || "").trim() !== marketer) return false;
+
+          const orderDate = new Date(order.date);
+          if (isNaN(orderDate.getTime())) return false;
+
+          return orderDate >= oneWeekAgo && orderDate <= now;
+        })
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    async function loadMarketerPreviousWeekOrders() {
+      const box = document.getElementById("marketerPreviousWeekList");
+      box.innerHTML = "<p>در حال بارگذاری...</p>";
+
+      const f = new FormData();
+      f.append("action", "getOrders");
+
+      try {
+        const res = await fetch(ADD_CUSTOMER_URL, { method: "POST", body: f });
+        const data = await res.json();
+
+        if (data.status !== "success") {
+          box.innerHTML = "<p>خطا در دریافت سفارشات.</p>";
+          return;
+        }
+
+        if (data.changed === false && !data.orders) {
+          box.innerHTML = "<p>در ۷ روز گذشته سفارشی ثبت نکرده‌اید.</p>";
+          return;
+        }
+
+        const orders = filterMarketerPreviousWeekOrders(data.orders || []);
+        await renderMarketerPreviousWeekOrders(orders);
+      } catch (e) {
+        console.error(e);
+        box.innerHTML = "<p>خطا در اتصال به سرور.</p>";
+      }
+    }
+
+    async function renderMarketerPreviousWeekOrders(orders) {
+      const box = document.getElementById("marketerPreviousWeekList");
+      box.innerHTML = "";
+
+      if (!orders.length) {
+        box.innerHTML = "<p>در ۷ روز گذشته سفارشی ثبت نکرده‌اید.</p>";
+        return;
+      }
+
+      for (const order of orders) {
+        const customer = customers.find(c => String(c.id) === String(order.customerId)) || {};
+        const items = await getOrderItems(order.orderId);
+
+        const itemsHtml = items.length
+          ? items.map(item => `
+              <li>${item.productName} — تعداد: ${item.qty} — قیمت: ${Number(item.price).toLocaleString()} — جمع: ${Number(item.rowTotal).toLocaleString()}</li>
+            `).join("")
+          : "<li>اقلامی یافت نشد</li>";
+
+        const orderDiv = document.createElement("div");
+        orderDiv.className = "order-card";
+
+        orderDiv.innerHTML = `
+          <h4>سفارش ${order.orderId}</h4>
+          <p><b>تاریخ:</b> ${formatOrderDate(order.date)}</p>
+          <p><b>وضعیت:</b> ${order.status || "-"}</p>
+          <p><b>فروشگاه:</b> ${order.shopName || "-"}</p>
+          <p><b>مشتری:</b> ${customer.name || "-"}</p>
+          <p><b>تخفیف:</b> ${order.discount || 0}%</p>
+          <p><b>جمع کل:</b> ${Number(order.grandTotal || 0).toLocaleString()} ریال</p>
+          ${order.description ? `<p><b>توضیحات:</b> ${order.description}</p>` : ""}
+          <p><b>اقلام سفارش:</b></p>
+          <ul style="margin:0;padding-right:20px;">${itemsHtml}</ul>
+        `;
+
+        box.appendChild(orderDiv);
+      }
+    }
+
+    async function toggleMarketerPreviousWeekOrders() {
+      const box = document.getElementById("marketerPreviousWeekBox");
+      const btn = document.getElementById("marketerPreviousWeekBtn");
+      const isHidden = box.classList.contains("hidden");
+
+      if (isHidden) {
+        box.classList.remove("hidden");
+        btn.textContent = "بستن سفارشات هفته گذشته";
+        await loadMarketerPreviousWeekOrders();
+      } else {
+        box.classList.add("hidden");
+        btn.textContent = "سفارشات هفته گذشته";
+      }
+    }
 
 
     async function getOrderItems(orderId) {
@@ -746,6 +875,35 @@
         calculate();
       }
     });
+
+    function startMarketerAutoRefresh() {
+      if (marketerTimer) clearInterval(marketerTimer);
+      marketerTimer = setInterval(() => {
+          loadCustomers();
+          updatePrices(); // تابع جدید اینجا فراخوانی می‌شود
+      }, 5000);
+    }
+
+    function updatePrices() {
+      // آدرس API یا بک‌اند خودتان را در اینجا قرار دهید
+      fetch('http://localhost:5000/api/getProducts') 
+          .then(response => response.json())
+          .then(products => {
+              products.forEach(p => {
+                  const row = document.getElementById(`product-${p.id}`);
+                  if (row) {
+                      const priceCell = row.querySelector('.price');
+                      if (priceCell) {
+                          priceCell.innerText = p.price.toLocaleString('fa-ir');
+                      }
+                  }
+              });
+              updateTotal();
+          })
+          .catch(error => console.error('خطا در دریافت قیمت‌ها:', error));
+    }
+
+
 
     window.addEventListener("load", initApp);
   </script>
